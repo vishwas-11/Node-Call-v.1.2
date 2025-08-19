@@ -18,6 +18,11 @@ A real-time video calling and chat web application built using **Node.js**, **Ex
 * **WebRTC** – Peer-to-peer video and audio communication.
 * **TailwindCSS** – Utility-first CSS framework for fast UI development.
 
+## 🚀 Live Demo
+
+Check out the live version of the app here:  
+👉 [https://node-call-69wl.onrender.com](https://node-call-69wl.onrender.com)
+
 ## Getting Started
 
 ### Prerequisites
