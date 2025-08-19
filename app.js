@@ -8,7 +8,7 @@ const server = http.createServer(app);
 
 // --- CHANGE 1: Update CORS Origin ---
 // You will replace this with your Vercel URL after you deploy the frontend.
-const vercelFrontendUrl = "https://your-frontend-app-name.vercel.app"; 
+const vercelFrontendUrl = "https://node-call-sigma.vercel.app"; 
 
 const io = new Server(server, {
   cors: {
