@@ -1,112 +1,118 @@
-# Node-Call
+# Node-Call Backend: Project Workflow & Logic
 
-A real-time video calling and chat web application built using **Node.js**, **Express.js**, **Socket.io**, **WebRTC**, and **TailwindCSS**.
+This document provides a comprehensive overview of the Node-Call backend server, detailing the complete project workflow from the user's perspective and explaining the core logic for real-time communication.
 
-## Features
+---
 
-* Peer-to-peer video calling using **WebRTC**.
-* Real-time chat functionality during video calls.
-* Clean and responsive UI powered by **TailwindCSS**.
-* Uses **Socket.io** for signaling and real-time messaging.
-* Room-based call setup — share room ID to connect.
+## 1. Project Overview
 
-## Tech Stack
+Node-Call is a full-stack video communication application that enables users to connect for peer-to-peer video calls, screen sharing, and live chat. The backend is a lightweight but powerful **signaling server** built with Node.js, Express, and Socket.IO. Its primary responsibility is to manage user connections within private rooms and facilitate the initial WebRTC handshake that allows clients to establish a direct connection.
 
-* **Node.js** – Server-side JavaScript runtime.
-* **Express.js** – Lightweight web framework for Node.
-* **Socket.io** – Enables real-time, bidirectional communication.
-* **WebRTC** – Peer-to-peer video and audio communication.
-* **TailwindCSS** – Utility-first CSS framework for fast UI development.
+---
 
-## 🚀 Live Demo
+## 2. Live Backend & Screenshots
 
-Check out the live version of the app here:  
-👉 [https://node-call-69wl.onrender.com](https://node-call-69wl.onrender.com)
+### Live Hosted Backend
 
-## Getting Started
+The backend for this project is deployed on Render and is available at the following URL:
+
+**[Backend Deployed here](https://node-call-v-1-2.onrender.com)**
+
+### Screenshots
+
+**Joining a Room:** 
+
+<img width="1920" height="1466" alt="Landing_Page" src="https://github.com/user-attachments/assets/050c52ff-c408-4aa7-afdc-13de3139b1de" />
+
+**In a Call:** 
+
+<img width="1904" height="980" alt="Room" src="https://github.com/user-attachments/assets/7ff57533-b746-456b-b80a-71b763f497bb" />
+
+---
+
+## 3. The Complete User Workflow
+
+The entire application flow is designed to be simple for the user but relies on a precise sequence of events between the frontend and backend.
+
+### Step 1: User A Creates a Private Room
+
+1.  **Frontend Action**: User A opens the application, enters their name (e.g., "Alice"), and clicks the "Create New Room" button.
+2.  **Room ID Generation**: The React frontend generates a unique Room ID (e.g., `a1b2c3d4`) using the `uuid` library.
+3.  **Navigation**: The frontend navigates Alice to the room page URL, for example, `/room/a1b2c3d4`, passing her username and avatar in the route's state.
+
+### Step 2: User A Joins the Room on the Backend
+
+1.  **Frontend Action**: Alice's browser loads the `Room.jsx` component. It requests access to her camera and microphone.
+2.  **Backend Connection**: Once media is acquired, the frontend emits a `join-room` event to the backend server via Socket.IO.
+    -   **Payload**: `{ roomId: "a1b2c3d4", username: "Alice", avatar: "👩" }`
+3.  **Backend Logic**:
+    -   The server receives the `join-room` event.
+    -   It subscribes Alice's socket to a channel named after the `roomId` (`a1b2c3d4`).
+    -   It stores Alice's metadata (username, avatar, roomId) in the `socketMeta` object and her socket ID in the `usersInRoom` object. At this point, she is the only one in the room.
+
+### Step 3: User B Joins the Same Room
+
+1.  **Frontend Action**: Alice shares the room URL with User B ("Bob"). Bob opens the link, enters his name, and is navigated to the same room page.
+2.  **Backend Connection**: Bob's browser also loads the `Room.jsx` component, gets his media, and emits a `join-room` event.
+    -   **Payload**: `{ roomId: "a1b2c3d4", username: "Bob", avatar: "👨" }`
+3.  **Backend Logic**:
+    -   The server receives Bob's `join-room` event.
+    -   It sees that the room `a1b2c3d4` already has one user (Alice).
+    -   The server emits an `all-users` event **only to Bob**, telling him that Alice is in the room.
+    -   The server then adds Bob to the room and emits a `user-joined` event **to Alice**, telling her that Bob has arrived.
+
+### Step 4: The WebRTC Handshake (Peer Connection)
+
+This is the most critical part, where the backend acts as a matchmaker.
+
+1.  **Frontend (Bob - Initiator)**: Upon receiving the `all-users` event, Bob's browser knows it needs to call Alice. It creates a WebRTC "offer" signal.
+    -   It emits a `send-signal` event to the server, addressed to Alice.
+
+2.  **Backend (Server)**: The server receives the `send-signal` event from Bob. It does not inspect the signal; it simply forwards it to Alice by emitting a `receive-signal` event.
+
+3.  **Frontend (Alice - Receiver)**: Alice's browser receives the `receive-signal` event and Bob's offer. It creates a WebRTC "answer" signal.
+    -   It emits a `return-signal` event to the server, addressed back to Bob.
+
+4.  **Backend (Server)**: The server receives the `return-signal` from Alice and forwards it to Bob by emitting a `returned-signal` event.
+
+5.  **Connection Established**: Bob receives Alice's answer. The handshake is complete! A direct, peer-to-peer WebRTC connection is established between their browsers for video and audio. The backend server is no longer involved in streaming the media.
+
+### Step 5: Real-Time Chatting
+
+The chat feature works in parallel and is much simpler.
+
+1.  **Frontend Action**: Alice types a message and hits send.
+2.  **Backend Connection**: The frontend emits a `send-message` event to the server.
+    -   **Payload**: `{ roomId: "a1b2c3d4", username: "Alice", message: "Hello Bob!" }`
+3.  **Backend Logic**: The server receives the message and broadcasts it to **everyone** in the room `a1b2c3d4` by emitting a `receive-message` event.
+4.  **Frontend Action**: Bob's browser (and Alice's, so she sees her own message) receives the `receive-message` event and displays the new message in the chat box.
+
+---
+
+## 4. Setup and Installation
 
 ### Prerequisites
 
-* Node.js and npm installed on your machine.
+-   [Node.js](https://nodejs.org/) (v14 or later recommended)
+-   [npm](https://www.npmjs.com/)
 
-### Installation Steps
+### Running Locally
 
-1. Clone the repository:
+1.  **Clone the repository:**
+    ```bash
+    git clone <your-repository-url>
+    cd <your-backend-folder>
+    ```
 
-   ```bash
-   git clone https://github.com/yourusername/node-call.git
-   cd node-call
-   ```
-2. Install dependencies:
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
 
-   ```bash
-   npm install
-   ```
-3. Start the server:
+3.  **Start the server:**
+    ```bash
+    npm start 
+    # Or use `npm run dev` if you have nodemon installed
+    ```
 
-   ```bash
-   node server.js
-   ```
-4. Open in browser:
-
-   ```
-   http://localhost:3000
-   ```
-5. Share the room ID with another user to start a call.
-
-## Folder Structure
-
-```
-node-call/
-│── public/           # Static assets (HTML, CSS, client JS)
-│── src/
-│   ├── server.js     # Express and Socket.io server
-│   ├── webrtc.js     # WebRTC signaling and logic
-│── views/            # HTML templates (e.g., using EJS or plain HTML)
-│── package.json      # Project metadata and dependencies
-│── README.md         # Project documentation
-```
-
-## How It Works
-
-* Users enter a room ID to join a video chat room.
-* **Socket.io** handles room creation and signaling.
-* **WebRTC** establishes direct peer-to-peer connections.
-* Chat messages are exchanged through the same Socket.io connection.
-
-## Screenshots
-
-#### Chat from User 1
-![chat_a](https://github.com/user-attachments/assets/c1f1e846-47c6-4a6f-b8c3-9286e6ea59a9)
-
-#### Chat from User 2
-![chat_b](https://github.com/user-attachments/assets/c0e5c1fe-1aab-45f9-8322-2d13e8850150)
-
-#### Incoming Call
-![incoming_call](https://github.com/user-attachments/assets/6cf98167-54ae-480a-af03-2decf17855a8)
-
-#### Video calling feature from both remote and local window side
-![video_calling ](https://github.com/user-attachments/assets/6d5263d3-3baf-4ee4-a162-e8dbdbbf0b65)
-
-
-## Future Enhancements
-
-* Add screen sharing functionality.
-* Store chat history using a database.
-* Add user authentication and profiles.
-* Deploy on cloud platforms like Heroku or Vercel.
-
-## Contributing
-
-Feel free to fork this repo and submit a pull request. All contributions are appreciated!
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
-
-## Acknowledgments
-
-* [WebRTC](https://webrtc.org/)
-* [Socket.io](https://socket.io/)
-* [TailwindCSS](https://tailwindcss.com/)
-
+The server will be running on `http://localhost:3000`. Ensure your frontend's `.env` file points to this address during local development.
